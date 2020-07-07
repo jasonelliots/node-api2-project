@@ -25,7 +25,7 @@ const router = express.Router();
 router.post("/", (req, res) =>{
     Posts.insert(req.body)
     .then(post => {
-        if(post.title && post.contents){
+        if(req.body.title && req.body.contents){
             res.status(201).json({post})
         } else {
             res.status(400).json({ errorMessage: "Please provide title and contents for the post."})
@@ -64,19 +64,14 @@ router.post("/", (req, res) =>{
 
 router.post("/:id/comments", (req, res) => {
     const id = req.params.id; 
-    const selectedPost = Posts.find(post => post.id === id);
+
+    if(!req.body.text){
+        res.status(400).json({errorMessage: "Please provide text for the comment."})
+    }
 
     Posts.insertComment(req.body)
     .then(comment => {
-        if(selectedPost){
-            if(req.body.text){ // try this, if it doesnt work try comment.text 
-                res.status(201).json({comment})
-            } else {
-                res.status(400).json({ errorMessage: "Please provide text for the comment."})
-            }
-        } else {
-            res.status(404).json({ message: "The post with the specified ID does not exist."})
-        }
+        res.status(201).json({comment}); 
     })
     .catch(error => {
         console.log(error);
@@ -148,18 +143,15 @@ router.get("/:id", (req, res) => {
 router.get("/:id/comments", (req, res) => {
 
     const id = req.params.id; 
-    const selectedPost = Posts.find(post => post.id === id);
 
-    Posts.findPostComments(req.body) // try this, if doesnt work try another method 
+
+    Posts.findPostComments(id) 
     .then(comments => {
-        if(selectedPost){
-            if(req.body.text){ // try this, if it doesnt work try comment.text 
-                res.status(200).json({comments})
-            } else {
-                res.status(400).json({ errorMessage: "Please provide text for the comment."})
-            }
+        if(comments > 0){
+            res.status(200).json({comments})
         } else {
             res.status(404).json({ message: "The post with the specified ID does not exist."})
+            // why cant I hit this? 
         }
     })
     .catch(error => {
@@ -182,12 +174,10 @@ router.get("/:id/comments", (req, res) => {
     // return the following JSON object: { error: "The post could not be removed" }.
 
 router.delete("/:id", (req, res) => {
-    const id = req.params.id; 
-    const selectedPost = Posts.find(post => post.id === id);
 
-    Posts.remove(req.body) // if this doesnt work try req.params.id 
+    Posts.remove(req.params.id) 
     .then(post => {
-        if(selectedPost){
+        if(post > 0){
             res.status(200).json({ message: "The post has been removed", data: post})
         } else {
             res.status(404).json({ message: "The post with the specified ID does not exist."})
@@ -227,13 +217,12 @@ router.delete("/:id", (req, res) => {
 
 
 router.put("/:id", (req, res) => {
-    const id = req.params.id; 
-    const selectedPost = Posts.find(post => post.id === id);
-
-    Posts.update(req.body)
+    const changes = req.body; 
+    
+    Posts.update(req.params.id, changes)
     .then(post => {
-        if(selectedPost){
-            if(post.title && post.contents){ // might need to do req.body.title and red.body.contents
+        if(post){
+            if(req.body.title && req.body.contents){
                 res.status(200).json({post})
             } else {
                 res.status(400).json({errorMessage: "Please provide title and contents for the post."})
